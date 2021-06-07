@@ -13,7 +13,7 @@
         el: '#app',
         mounted() {
             var self = this;
-            fetch('@Url.Page("/Raids/Raids", "test")', {
+            fetch('@Url.RouteUrl("ProfileController")', {
                 method: "POST",
                 body: JSON.stringify(
                     self.profiles
@@ -23,9 +23,9 @@
                     Accept: 'application/json',
                 }
             })
-                .then(response => console.log(response.json()))
+            .then(response => response.json())
             .then((data) => {
-                console.log(JSON.stringify(data));
+                console.log(data);
             });
         },
         data: {
