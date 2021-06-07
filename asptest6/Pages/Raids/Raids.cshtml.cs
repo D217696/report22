@@ -25,7 +25,7 @@ namespace asptest6.Pages.Forms
         public new User User { get; set; }
         public List<Profile> Profiles { get; set; } = new List<Profile>();
 
-        public void OnGet()
+        public async void OnGet()
         {
             ProfilesModel ProfileModel = new ProfilesModel();
             BungieApi BungieApi = new BungieApi();
@@ -43,7 +43,7 @@ namespace asptest6.Pages.Forms
             }
             else
             {
-                GetLinkedProfiles getLinkedProfiles = JsonConvert.DeserializeObject<GetLinkedProfiles>(BungieApi.MakeRequest($"/Destiny2/{MembershipType}/Profile/{MembershipId}/LinkedProfiles/").Result);
+                GetLinkedProfiles getLinkedProfiles = JsonConvert.DeserializeObject<GetLinkedProfiles>(await BungieApi.MakeRequest($"/Destiny2/{MembershipType}/Profile/{MembershipId}/LinkedProfiles/"));
                 if (getLinkedProfiles.ErrorCode != 1) return;
 
                 User = UsersModel.InsertUser(getLinkedProfiles.Response.Profiles[0].DisplayName);
@@ -58,7 +58,7 @@ namespace asptest6.Pages.Forms
                         Username = profile.DisplayName
                     }));
 
-                    GetHistoricalStatsForAccount getHistoricalStatsForAccount = JsonConvert.DeserializeObject<GetHistoricalStatsForAccount>(BungieApi.MakeRequest($"/Destiny2/{profile.MembershipType}/Account/{profile.MembershipId}/Stats/").Result);
+                    GetHistoricalStatsForAccount getHistoricalStatsForAccount = JsonConvert.DeserializeObject<GetHistoricalStatsForAccount>( await BungieApi.MakeRequest($"/Destiny2/{profile.MembershipType}/Account/{profile.MembershipId}/Stats/"));
                     if (getHistoricalStatsForAccount.ErrorCode != 1) return;
 
                     foreach (DestinyHistoricalStatsPerCharacter character in getHistoricalStatsForAccount.Response.Characters)
