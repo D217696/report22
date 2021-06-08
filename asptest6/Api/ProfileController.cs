@@ -38,7 +38,7 @@ namespace asptest6.Api
                 {
                     CharacterId = task.Result.CharacterId,
                     Count = task.Result.Count,
-                    ErrorCode = task.Result.Count,
+                    ErrorCode = task.Result.ErrorCode,
                     ErrorMessage = task.Result.ErrorMessage,
                     Pages = task.Result.Pages
                 });
