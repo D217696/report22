@@ -78,17 +78,5 @@ namespace asptest6.Pages.Forms
                 }
             }
         }
-
-        public JsonResult OnPostTest()
-        {
-            Console.WriteLine(new StreamReader(HttpContext.Request.Body).ReadToEnd());
-            Console.WriteLine("reached");
-            return new JsonResult(Profiles);
-        }
-    }
-
-    public class model
-    {
-        List<Profile> profiles { get; set; } 
     }
 }
