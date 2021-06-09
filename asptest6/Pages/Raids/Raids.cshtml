@@ -6,17 +6,17 @@
 <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
 <div id="app">
     {{ user.username }}
+    {{ getActivityPagesResults.count }}
 </div>
 <I></I>
 <script>
     var app = new Vue({
         el: '#app',
         mounted() {
-            var self = this;
-            fetch('@Url.RouteUrl("ProfileController")', {
+            fetch('@Url.RouteUrl("ProfileController")/CharacterPages', {
                 method: "POST",
                 body: JSON.stringify(
-                    self.profiles
+                    this.profiles
                 ),
                 headers: {
                     'Content-Type': 'application/json',
@@ -25,14 +25,46 @@
             })
             .then(response => response.json())
             .then((data) => {
+                this.getActivityPagesResults = data;
                 console.log(data);
+                this.InitRequestPCGRsForCharacters();
             });
         },
         data: {
             user: @Json.Serialize(Model.User),
-            profiles: @Json.Serialize(Model.Profiles)
+            profiles: @Json.Serialize(Model.Profiles),
+            getActivityPagesResults: {
+                characters: [],
+                count: 0,
+                pages: 0
+            }
         },
         methods: {
+            InitRequestPCGRsForCharacters() {
+                let self = this;
+                this.getActivityPagesResults.characters.forEach((character) => {
+                    self.RequestPCGRsForCharacters(character);
+                });
+            },
+            RequestPCGRsForCharacters(character) {
+                if (character.pages <= 0) return;
+
+                fetch('@Url.RouteUrl("ProfileController")/PcgrsPage', {
+                    method: "POST",
+                    body: JSON.stringify(character),
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then((data) => {
+                    console.log(data);
+                    if (data.pages > 0) {
+                        this.RequestPCGRsForCharacters(data);
+                    }
+                });
+            }
         }
     });
 </script>

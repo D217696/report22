@@ -8,10 +8,13 @@ namespace asptest6.Objects
     public class GetCharacterPagesResponse
     {
         public List<CharacterPage> Characters { get; set; } = new List<CharacterPage>();
+        public int Pages { get; set; } = 0;
+        public int Count { get; set; } = 0;
     }
 
     public class CharacterPage
     {
+        public string MembershipId { get; set; }
         public string CharacterId { get; set; }
         public int Pages { get; set; }
         public int Count { get; set; }
@@ -21,6 +24,7 @@ namespace asptest6.Objects
 
     public class CharacterPageRequest
     {
+        public string MembershipId { get; set; }
         public string CharacterId { get; set; }
         public int Pages { get; set; }
         public int Count { get; set; }

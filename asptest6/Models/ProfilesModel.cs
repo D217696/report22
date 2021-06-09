@@ -86,5 +86,24 @@ namespace asptest6.Models
             Database.Db.Close();
             return profile;
         }
+
+        public void UpdateProfileLastUpdated(string membershipId, DateTime lastUpdate)
+        {
+            string sql = "UPDATE Profiles SET last_updated = @last_updated WHERE membership_id = @membership_id";
+            MySqlCommand cmd = new(sql, Database.Db);
+            cmd.Parameters.AddWithValue("@last_updated", lastUpdate);
+            cmd.Parameters.AddWithValue("@membership_id", membershipId);
+            try
+            {
+                Database.Db.Open();
+                MySqlDataReader reader = cmd.ExecuteReader();
+                while (reader.Read()) { }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            Database.Db.Close();
+        }
     }
 }
