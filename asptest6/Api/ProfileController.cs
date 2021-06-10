@@ -17,11 +17,14 @@ namespace asptest6.Api
     {
         readonly ActivityPagesModel ActivityPagesModel = new();
         readonly ProfilesModel profilesModel = new();
+        readonly CharacterPgcrModel characterPgcrModel = new();
+        readonly PgcrsModel pgcrsModel = new();
         readonly BungieApi BungieApi = new();
 
         [HttpPost("CharacterPages")]
         public async Task<GetCharacterPagesResponse> GetCharacterPages(List<Profile> profiles)
         {
+            Console.WriteLine("getting character pages");
             List<Task<CharacterPageRequest>> tasks = new();
             GetCharacterPagesResponse getCharacterPagesResponse = new();
             bool succeeded = true;
@@ -145,24 +148,111 @@ namespace asptest6.Api
         [HttpPost("PcgrsPage")]
         public async Task<CharacterPage> RequestPCGRs(CharacterPage characterPage)
         {
+            Console.WriteLine("getting pcgrs");
             ActivityPage activityPage = ActivityPagesModel.GetActivityPage(characterPage.MembershipId, characterPage.CharacterId, characterPage.Pages - 1);
             DestinyHistoricalStatsPeriodGroup[] activities = JsonConvert.DeserializeObject<DestinyHistoricalStatsPeriodGroup[]>(activityPage.Json).Where(x => x.Values["completed"].Basic.Value == 1 && x.Values["completionReason"].Basic.DisplayValue == "Objective Completed").ToArray(); //completion check
-            List<Task<dynamic>> tasks = new(); //response from get pcgr and lowman algorithm
+            List<Task<GetPGCRResponse>> tasks = new(); //response from get pcgr and lowman algorithm
 
             foreach (DestinyHistoricalStatsPeriodGroup activity in activities)
             {
-                tasks.Add(Task.Run(() => RequestAndVerifyPCGR(activity.ActivityDetails.InstanceId)));
+                Pgcr pgcr = pgcrsModel.GetPgcr(activity.ActivityDetails.InstanceId);
+                GetPGCRResponse getPGCRResponse = await RequestAndVerifyPCGR(activity.ActivityDetails.InstanceId, characterPage.CharacterId);
+                if (pgcr == null)
+                {
+                    tasks.Add(Task.Run(() => RequestAndVerifyPCGR(activity.ActivityDetails.InstanceId, characterPage.CharacterId)));
+                }
+                else
+                {
+                    GetPostGameCarnageReport getPostGameCarnageReport = JsonConvert.DeserializeObject<GetPostGameCarnageReport>(pgcr.Pcgr);
+
+                    DestinyPostGameCarnageReportEntry player = (DestinyPostGameCarnageReportEntry)getPostGameCarnageReport.Response.Entries.Where(x => x.CharacterId.ToString() == characterPage.CharacterId);
+
+                    CharacterPgcr characterPgcr = new()
+                    {
+                        CharacterId = characterPage.CharacterId,
+                        PgcrId = activity.ActivityDetails.InstanceId,
+                        Kills = (int)player.Values["kills"].Basic.Value,
+                        Deaths = (int)player.Values["deaths"].Basic.Value,
+                        Completed = player.Values["completed"].Basic.Value == 1
+                    };
+
+                    characterPgcrModel.InsertCharacterPgcr(characterPgcr);
+                }
             }
+
+            await Task.WhenAll(tasks.ToArray());
+            foreach (Task<GetPGCRResponse> task in tasks)
+            {
+                if (task.Result.ErrorCode != 1) continue;
+                GetPGCRResponse getPCGRResponse = task.Result;
+
+                characterPgcrModel.InsertCharacterPgcr(getPCGRResponse.CharacterPgcr);
+                Pgcr pgcr = pgcrsModel.GetPgcr(getPCGRResponse.Pgcr.PcgrId);
+                if (pgcr != null) continue;
+                pgcrsModel.InsertPgcr(getPCGRResponse.Pgcr);
+            }
+
             characterPage.Pages -= 1;
             return characterPage;
         }
 
-        public async Task<dynamic> RequestAndVerifyPCGR(long pcgrId)
+        public async Task<GetPGCRResponse> RequestAndVerifyPCGR(long activityId, string characterId)
         {
-            // check if pcgr is in database?
+            GetPGCRResponse getPCGRResponse = new();
+            GetPostGameCarnageReport getPostGameCarnageReport = JsonConvert.DeserializeObject<GetPostGameCarnageReport>(await BungieApi.MakeRequestWithoutBaseUrl($"https://stats.bungie.net/Platform/Destiny2/Stats/PostGameCarnageReport/{activityId}/"));
+            if (getPostGameCarnageReport.ErrorCode != 1)
+            {
+                return new GetPGCRResponse()
+                {
+                    ErrorCode = getPostGameCarnageReport.ErrorCode,
+                    ErrorMessage = getPostGameCarnageReport.Message
+                };
+            }
 
-            GetPostGameCarnageReport getPostGameCarnageReport = JsonConvert.DeserializeObject<GetPostGameCarnageReport>(await BungieApi.MakeRequest(""));
-            return "";
+            int totalKills = 0;
+            int totalDeaths = 0;
+            int playerCount = 0;
+            int playerKills = 0;
+            int playerDeaths = 0;
+            bool completed = false;
+
+            foreach(DestinyPostGameCarnageReportEntry entry in getPostGameCarnageReport.Response.Entries)
+            {
+                totalDeaths += (int)entry.Values["deaths"].Basic.Value;
+                totalKills += (int)entry.Values["kills"].Basic.Value;
+                if (entry.Values["kills"].Basic.Value > 0 && entry.Values["assists"].Basic.Value > 0) playerCount++;
+
+                if (entry.CharacterId.ToString() == characterId)
+                {
+                    playerKills = (int)entry.Values["kills"].Basic.Value;
+                    playerDeaths = (int)entry.Values["deaths"].Basic.Value;
+                    completed = entry.Values["completed"].Basic.Value == 1;
+                }
+            }
+
+            getPCGRResponse.CharacterPgcr = new()
+            {
+                CharacterId = characterId,
+                PgcrId = activityId,
+                Kills = playerKills, 
+                Deaths = playerDeaths,
+                Completed = completed 
+            };
+
+            getPCGRResponse.Pgcr = new()
+            { 
+                PcgrId = activityId,
+                Pcgr = JsonConvert.SerializeObject(getPostGameCarnageReport),
+                Flawless = totalDeaths == 0,
+                StartingPhaseIndex = getPostGameCarnageReport.Response.StartingPhaseIndex,
+                PlayerCount = playerCount, 
+                RaidId = 1
+            };
+
+            getPCGRResponse.ErrorCode = 1;
+            getPCGRResponse.ErrorMessage = "success";
+
+            return getPCGRResponse;
         }
     }
 }

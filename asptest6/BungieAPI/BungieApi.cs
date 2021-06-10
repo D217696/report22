@@ -18,8 +18,14 @@ namespace asptest6.Objects
 
         public async Task<string> MakeRequest(string url)
         {
-            string x = Domain + url;
             HttpResponseMessage response = await client.GetAsync($"{Domain}{url}");
+            Console.WriteLine($"Request made {DateTime.Now}");
+            return await response.Content.ReadAsStringAsync();
+        }
+
+        public async Task<string> MakeRequestWithoutBaseUrl(string url)
+        {
+            HttpResponseMessage response = await client.GetAsync(url);
             Console.WriteLine($"Request made {DateTime.Now}");
             return await response.Content.ReadAsStringAsync();
         }
