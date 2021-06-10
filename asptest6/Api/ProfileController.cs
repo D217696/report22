@@ -146,12 +146,11 @@ namespace asptest6.Api
         public async Task<CharacterPage> RequestPCGRs(CharacterPage characterPage)
         {
             ActivityPage activityPage = ActivityPagesModel.GetActivityPage(characterPage.MembershipId, characterPage.CharacterId, characterPage.Pages - 1);
-            DestinyHistoricalStatsPeriodGroup[] activities = JsonConvert.DeserializeObject<DestinyHistoricalStatsPeriodGroup[]>(activityPage.Json);
+            DestinyHistoricalStatsPeriodGroup[] activities = JsonConvert.DeserializeObject<DestinyHistoricalStatsPeriodGroup[]>(activityPage.Json).Where(x => x.Values["completed"].Basic.Value == 1 && x.Values["completionReason"].Basic.DisplayValue == "Objective Completed").ToArray(); //completion check
             List<Task<dynamic>> tasks = new(); //response from get pcgr and lowman algorithm
+
             foreach (DestinyHistoricalStatsPeriodGroup activity in activities)
             {
-                //check for completion here?
-
                 tasks.Add(Task.Run(() => RequestAndVerifyPCGR(activity.ActivityDetails.InstanceId)));
             }
             characterPage.Pages -= 1;
