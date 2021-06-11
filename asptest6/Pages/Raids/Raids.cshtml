@@ -5,8 +5,15 @@
 
 <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
 <div id="app">
-    {{ user.username }}
+    <div v-for="profile in profiles" v-on:click="activeProfile=profile.membershipId">
+        {{ profile.username }}
+    </div>
     {{ getActivityPagesResults.count }}
+    <div v-for="raid in raids[activeProfile]">
+        <h1>{{ raid.raidName }}</h1>
+        <h3>{{ raid.playerCount }} player(s)</h3>
+        <h3>{{ raid.count }} time(s)</h3>
+    </div>
 </div>
 <I></I>
 <script>
@@ -29,6 +36,9 @@
                 console.log(data);
                 this.InitRequestPCGRsForCharacters();
             });
+
+            this.FetchRaids();
+            this.activeProfile = this.profiles[0].membershipId;
         },
         data: {
             user: @Json.Serialize(Model.User),
@@ -37,18 +47,22 @@
                 characters: [],
                 count: 0,
                 pages: 0
-            }
+            },
+            raids: {},
+            activeProfile: null
         },
         methods: {
             InitRequestPCGRsForCharacters() {
                 let self = this;
                 this.getActivityPagesResults.characters.forEach((character) => {
-                    self.RequestPCGRsForCharacters(character);
+                    let amountOfPages = character.pages;
+                    for (var i = 0; i < amountOfPages; i++) {
+                        self.RequestPCGRsForCharacters(character);
+                        character.pages--;
+                    }
                 });
             },
             RequestPCGRsForCharacters(character) {
-                if (character.pages <= 0) return;
-
                 fetch('@Url.RouteUrl("ProfileController")/PcgrsPage', {
                     method: "POST",
                     body: JSON.stringify(character),
@@ -60,9 +74,24 @@
                 .then(response => response.json())
                 .then((data) => {
                     console.log(data);
-                    if (data.pages > 0) {
-                        this.RequestPCGRsForCharacters(data);
-                    }
+                });
+            },
+            FetchRaids() {
+                let self = this;
+                this.profiles.forEach((profile) => {
+                    fetch('@Url.RouteUrl("ProfileController")/ProfileRaids', {
+                        method: "POST",
+                        body: JSON.stringify(profile),
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Accept: 'application/json',
+                        }
+                    })
+                        .then(response => response.json())
+                        .then((data) => {
+                            console.log(data);
+                            self.raids[data.profile.membershipId] = data.raidCompletions;
+                        });
                 });
             }
         }

@@ -18,6 +18,7 @@ namespace asptest6.Models
             string sql = $"SELECT json_object('id', id, 'character_id', character_id, 'pgcr_id', pgcr_id, 'kills', kills, 'deaths', deaths, 'completed', completed) from Character_pgcrs WHERE character_id = @character_id AND pgcr_id = @pgcr_id;";
             MySqlCommand cmd = new(sql, Database.Db);
             cmd.Parameters.AddWithValue("@character_id", characterId);
+            cmd.Parameters.AddWithValue("@pgcr_id", pgcrId);
             try
             {
                 Database.Db.Open();

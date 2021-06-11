@@ -15,11 +15,12 @@ namespace asptest6.Api
     [ApiController]
     public class ProfileController : ControllerBase
     {
-        readonly ActivityPagesModel ActivityPagesModel = new();
+        readonly ActivityPagesModel activityPagesModel = new();
         readonly ProfilesModel profilesModel = new();
         readonly CharacterPgcrModel characterPgcrModel = new();
         readonly PgcrsModel pgcrsModel = new();
-        readonly BungieApi BungieApi = new();
+        readonly BungieApi bungieApi = new();
+        readonly RaidsModel raidsModel = new();
 
         [HttpPost("CharacterPages")]
         public async Task<GetCharacterPagesResponse> GetCharacterPages(List<Profile> profiles)
@@ -55,7 +56,7 @@ namespace asptest6.Api
                 {
                     getCharacterPagesResponse.Count += activityPage.Count;
                     getCharacterPagesResponse.Pages++;
-                    ActivityPagesModel.InsertActivityPage(activityPage);
+                    activityPagesModel.InsertActivityPage(activityPage);
                 }
             }
 
@@ -87,7 +88,7 @@ namespace asptest6.Api
 
             while (!done)
             {
-                GetActivityHistory getActivityHistory = JsonConvert.DeserializeObject<GetActivityHistory>(await BungieApi.MakeRequest($"/Destiny2/{membershipType}/Account/{membershipId}/Character/{characterId}/Stats/Activities/?mode=4&count=250&page={i}"));
+                GetActivityHistory getActivityHistory = JsonConvert.DeserializeObject<GetActivityHistory>(await bungieApi.MakeRequest($"/Destiny2/{membershipType}/Account/{membershipId}/Character/{characterId}/Stats/Activities/?mode=4&count=250&page={i}"));
                 if (getActivityHistory.ErrorCode != 1)
                 {
                     characterPageRequest.ErrorCode = getActivityHistory.ErrorCode;
@@ -106,6 +107,7 @@ namespace asptest6.Api
                     DestinyHistoricalStatsPeriodGroup[] results = getActivityHistory.Response.Activities.Where(x => x.Period > lastUpdated).ToArray();
                     if (results.Length > 0)
                     {
+                        getActivityHistory.Response.Activities = results;
                         characterPageRequest.ActivtityPages.Add(new ActivityPage
                         {
                             Json = JsonConvert.SerializeObject(getActivityHistory.Response.Activities),
@@ -149,8 +151,10 @@ namespace asptest6.Api
         public async Task<CharacterPage> RequestPCGRs(CharacterPage characterPage)
         {
             Console.WriteLine("getting pcgrs");
-            ActivityPage activityPage = ActivityPagesModel.GetActivityPage(characterPage.MembershipId, characterPage.CharacterId, characterPage.Pages - 1);
-            DestinyHistoricalStatsPeriodGroup[] activities = JsonConvert.DeserializeObject<DestinyHistoricalStatsPeriodGroup[]>(activityPage.Json).Where(x => x.Values["completed"].Basic.Value == 1 && x.Values["completionReason"].Basic.DisplayValue == "Objective Completed").ToArray(); //completion check
+            raidsModel.LoadRaidHashes();
+            ActivityPage activityPage = activityPagesModel.GetActivityPage(characterPage.MembershipId, characterPage.CharacterId, characterPage.Pages - 1);
+            DestinyHistoricalStatsPeriodGroup[] unfilteredActivites = JsonConvert.DeserializeObject<DestinyHistoricalStatsPeriodGroup[]>(activityPage.Json);
+            DestinyHistoricalStatsPeriodGroup[] activities = unfilteredActivites.Where(x => x.Values["completed"].Basic.Value == 1 && x.Values["completionReason"].Basic.DisplayValue == "Objective Completed").ToArray(); //completion check
             List<Task<GetPGCRResponse>> tasks = new(); //response from get pcgr and lowman algorithm
 
             foreach (DestinyHistoricalStatsPeriodGroup activity in activities)
@@ -163,9 +167,19 @@ namespace asptest6.Api
                 }
                 else
                 {
-                    GetPostGameCarnageReport getPostGameCarnageReport = JsonConvert.DeserializeObject<GetPostGameCarnageReport>(pgcr.Pcgr);
+                    GetPostGameCarnageReport getPostGameCarnageReport = JsonConvert.DeserializeObject<GetPostGameCarnageReport>(pgcr.PgcrString);
 
-                    DestinyPostGameCarnageReportEntry player = (DestinyPostGameCarnageReportEntry)getPostGameCarnageReport.Response.Entries.Where(x => x.CharacterId.ToString() == characterPage.CharacterId);
+                    DestinyPostGameCarnageReportEntry player = null;
+                        //(DestinyPostGameCarnageReportEntry)getPostGameCarnageReport.Response.Entries.Where(x => x.CharacterId.ToString() == characterPage.CharacterId);
+
+                    foreach(DestinyPostGameCarnageReportEntry entry in getPostGameCarnageReport.Response.Entries)
+                    {
+                        if (entry.CharacterId.ToString() == characterPage.CharacterId)
+                        {
+                            player = entry;
+                            break;
+                        }
+                    }
 
                     CharacterPgcr characterPgcr = new()
                     {
@@ -176,7 +190,11 @@ namespace asptest6.Api
                         Completed = player.Values["completed"].Basic.Value == 1
                     };
 
-                    characterPgcrModel.InsertCharacterPgcr(characterPgcr);
+                    CharacterPgcr characterPgcrFromDB = characterPgcrModel.GetCharacterPgcr(characterPage.CharacterId, activity.ActivityDetails.InstanceId);
+                    if (characterPgcrFromDB == null)
+                    {
+                        characterPgcrModel.InsertCharacterPgcr(characterPgcr);
+                    }
                 }
             }
 
@@ -184,22 +202,25 @@ namespace asptest6.Api
             foreach (Task<GetPGCRResponse> task in tasks)
             {
                 if (task.Result.ErrorCode != 1) continue;
-                GetPGCRResponse getPCGRResponse = task.Result;
+                GetPGCRResponse getPGCRResponse = task.Result;
 
-                characterPgcrModel.InsertCharacterPgcr(getPCGRResponse.CharacterPgcr);
-                Pgcr pgcr = pgcrsModel.GetPgcr(getPCGRResponse.Pgcr.PcgrId);
+                CharacterPgcr characterPgcr = characterPgcrModel.GetCharacterPgcr(getPGCRResponse.CharacterPgcr.CharacterId, getPGCRResponse.CharacterPgcr.PgcrId);
+                if (characterPgcr == null) characterPgcrModel.InsertCharacterPgcr(getPGCRResponse.CharacterPgcr);
+
+                Pgcr pgcr = pgcrsModel.GetPgcr(getPGCRResponse.Pgcr.PcgrId);
                 if (pgcr != null) continue;
-                pgcrsModel.InsertPgcr(getPCGRResponse.Pgcr);
+                pgcrsModel.InsertPgcr(getPGCRResponse.Pgcr);
             }
 
-            characterPage.Pages -= 1;
+            activityPagesModel.UpdateActivityPageHandled(activityPage.Id, true);
+            characterPage.Count = unfilteredActivites.Length;
             return characterPage;
         }
 
         public async Task<GetPGCRResponse> RequestAndVerifyPCGR(long activityId, string characterId)
         {
             GetPGCRResponse getPCGRResponse = new();
-            GetPostGameCarnageReport getPostGameCarnageReport = JsonConvert.DeserializeObject<GetPostGameCarnageReport>(await BungieApi.MakeRequestWithoutBaseUrl($"https://stats.bungie.net/Platform/Destiny2/Stats/PostGameCarnageReport/{activityId}/"));
+            GetPostGameCarnageReport getPostGameCarnageReport = JsonConvert.DeserializeObject<GetPostGameCarnageReport>(await bungieApi.MakeRequestWithoutBaseUrl($"https://stats.bungie.net/Platform/Destiny2/Stats/PostGameCarnageReport/{activityId}/"));
             if (getPostGameCarnageReport.ErrorCode != 1)
             {
                 return new GetPGCRResponse()
@@ -220,7 +241,7 @@ namespace asptest6.Api
             {
                 totalDeaths += (int)entry.Values["deaths"].Basic.Value;
                 totalKills += (int)entry.Values["kills"].Basic.Value;
-                if (entry.Values["kills"].Basic.Value > 0 && entry.Values["assists"].Basic.Value > 0) playerCount++;
+                if (entry.Values["kills"].Basic.Value > 0 || entry.Values["assists"].Basic.Value > 0) playerCount++;
 
                 if (entry.CharacterId.ToString() == characterId)
                 {
@@ -229,6 +250,8 @@ namespace asptest6.Api
                     completed = entry.Values["completed"].Basic.Value == 1;
                 }
             }
+
+            if (playerCount == 0) completed = false;
 
             getPCGRResponse.CharacterPgcr = new()
             {
@@ -240,19 +263,28 @@ namespace asptest6.Api
             };
 
             getPCGRResponse.Pgcr = new()
-            { 
+            {
                 PcgrId = activityId,
-                Pcgr = JsonConvert.SerializeObject(getPostGameCarnageReport),
+                PgcrString = JsonConvert.SerializeObject(getPostGameCarnageReport),
                 Flawless = totalDeaths == 0,
                 StartingPhaseIndex = getPostGameCarnageReport.Response.StartingPhaseIndex,
-                PlayerCount = playerCount, 
-                RaidId = 1
+                PlayerCount = playerCount,
+                RaidId = raidsModel.RaidHashes[getPostGameCarnageReport.Response.ActivityDetails.ReferenceId]
             };
 
             getPCGRResponse.ErrorCode = 1;
             getPCGRResponse.ErrorMessage = "success";
 
             return getPCGRResponse;
+        }
+
+        [HttpPost("ProfileRaids")]
+        public async Task<ProfileRaidCompletions> GetProfileRaids(Profile profile)
+        {
+            ProfileRaidCompletions profileRaidCompletions = new();
+            profileRaidCompletions.Profile = profile;
+            profileRaidCompletions.RaidCompletions = raidsModel.GetRaidCompletions(profile.MembershipId);
+            return profileRaidCompletions;
         }
     }
 }

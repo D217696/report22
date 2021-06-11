@@ -8,10 +8,10 @@ namespace asptest6.Objects
 {
     public class Pgcr
     {
-        [JsonProperty("pcgr_id")]
+        [JsonProperty("pgcr_id")]
         public long PcgrId { get; set; }
-        [JsonProperty("pcgr")]
-        public string Pcgr { get; set; }
+        [JsonProperty("pgcr")]
+        public string PgcrString { get; set; }
         [JsonProperty("flawless")]
         public bool Flawless { get; set; }
         [JsonProperty("starting_phase_index")]

@@ -43,7 +43,7 @@ namespace asptest6.Models
             string sql = "INSERT INTO pgcrs (pgcr_id, pgcr, flawless, starting_phase_index, raid_id, player_count) VALUES (@pgcr_id, @pgcr, @flawless, @starting_phase_index, @raid_id, @player_count)";
             MySqlCommand cmd = new(sql, Database.Db);
             cmd.Parameters.AddWithValue("@pgcr_id", pgcr.PcgrId);
-            cmd.Parameters.AddWithValue("@pgcr", pgcr.Pcgr);
+            cmd.Parameters.AddWithValue("@pgcr", pgcr.PgcrString);
             cmd.Parameters.AddWithValue("@flawless", pgcr.Flawless); ;
             cmd.Parameters.AddWithValue("@starting_phase_index", pgcr.StartingPhaseIndex);
             cmd.Parameters.AddWithValue("@raid_id", pgcr.RaidId);

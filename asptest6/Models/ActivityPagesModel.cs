@@ -15,7 +15,7 @@ namespace asptest6.Models
         public ActivityPage GetActivityPage(string membershipId, string characterId, int page)
         {
             ActivityPage activityPage = null;
-            string sql = $"SELECT json_object('id', id, 'json', json, 'membership_id', membership_id, 'character_id', character_id, 'start_date', start_date, 'end_date', end_date, 'count', count, 'page', page) from Activity_Pages WHERE membership_id = @membership_id AND character_id = @character_id AND page = @page;";
+            string sql = $"SELECT json_object('id', id, 'json', json, 'membership_id', membership_id, 'character_id', character_id, 'start_date', start_date, 'end_date', end_date, 'count', count, 'page', page) from Activity_Pages WHERE membership_id = @membership_id AND character_id = @character_id AND page = @page AND handled = 0;";
             MySqlCommand cmd = new(sql, Database.Db);
             cmd.Parameters.AddWithValue("@membership_id", membershipId);
             cmd.Parameters.AddWithValue("@character_id", characterId);
@@ -92,5 +92,24 @@ namespace asptest6.Models
             return activityPage;
         }
 
+        public bool UpdateActivityPageHandled(int id, bool handled)
+        {
+            string sql = $"UPDATE Activity_Pages SET handled = @handled WHERE id = @id";
+            MySqlCommand cmd = new(sql, Database.Db);
+            cmd.Parameters.AddWithValue("@handled", handled);
+            cmd.Parameters.AddWithValue("@id", id);
+            try
+            {
+                Database.Db.Open();
+                MySqlDataReader reader = cmd.ExecuteReader();
+                while (reader.Read()) { }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            Database.Db.Close();
+            return true;
+        }
     }
 }

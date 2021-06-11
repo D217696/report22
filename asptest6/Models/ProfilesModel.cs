@@ -41,7 +41,7 @@ namespace asptest6.Models
         public List<Profile> GetProfiles(string membershipId)
         {
             List<Profile> profiles = new();
-            string sql = "SELECT json_object('membership_id', membership_id, 'membership_type', membership_type, 'user_id', user_id, 'last_updated', last_updated, 'username', username) FROM `profiles` WHERE (SELECT user_id from profiles where membership_id = 4611686018467615099) = profiles.user_id";
+            string sql = "SELECT json_object('membership_id', membership_id, 'membership_type', membership_type, 'user_id', user_id, 'last_updated', last_updated, 'username', username) FROM `profiles` WHERE (SELECT user_id from profiles where membership_id = @membership_id) = profiles.user_id";
             MySqlCommand cmd = new(sql, Database.Db);
             cmd.Parameters.AddWithValue("@membership_id", membershipId);
             try
