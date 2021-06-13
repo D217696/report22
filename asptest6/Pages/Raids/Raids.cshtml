@@ -9,11 +9,12 @@
         {{ profile.username }}
     </div>
     {{ getActivityPagesResults.count }}
-    <div v-for="raid in raids[activeProfile]">
-        <h1>{{ raid.raidName }}</h1>
-        <h3>{{ raid.playerCount }} player(s)</h3>
-        <h3>{{ raid.count }} time(s)</h3>
-    </div>
+<div v-for="raid in raids[activeProfile]">
+    <h1>{{ raid.raid.displayName }}</h1>
+    <h3>{{ raid.threeMans }} Threemans</h3>
+    <h3>{{ raid.twoMans }} Twomans</h3>
+    <h3>{{ raid.oneMans }} Solos</h3>
+</div>
 </div>
 <I></I>
 <script>
@@ -89,7 +90,6 @@
                     })
                         .then(response => response.json())
                         .then((data) => {
-                            console.log(data);
                             self.raids[data.profile.membershipId] = data.raidCompletions;
                         });
                 });

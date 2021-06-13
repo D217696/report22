@@ -61,5 +61,31 @@ namespace asptest6.Models
             Database.Db.Close();
             return characterPgcr;
         }
+
+        public List<Completion> GetCompletions(string membershipId)
+        {
+            List<Completion> completions = new();
+            string sql = "SELECT JSON_OBJECT('pgcr_id', pgcrs.pgcr_id, 'flawless', pgcrs.flawless, 'starting_phase_index', pgcrs.starting_phase_index, 'raid_id', pgcrs.raid_id, 'player_count', pgcrs.player_count, 'character_id', character_pgcrs.character_id, 'kills', character_pgcrs.kills, 'deaths', character_pgcrs.deaths, 'completed', character_pgcrs.completed) FROM character_pgcrs inner join pgcrs on pgcrs.pgcr_id = character_pgcrs.pgcr_id inner join characters on characters.character_id = character_pgcrs.character_id where characters.membership_id = @membership_id and character_pgcrs.completed = 1 and pgcrs.player_count < 4";
+            MySqlCommand cmd = new(sql, Database.Db);
+            cmd.Parameters.AddWithValue("@membership_id", membershipId);
+            try
+            {
+                Database.Db.Open();
+                MySqlDataReader reader = cmd.ExecuteReader();
+                if (reader.HasRows)
+                {
+                    while (reader.Read())
+                    {
+                        completions.Add(JsonConvert.DeserializeObject<Completion>(reader.GetValue(0).ToString()));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            Database.Db.Close();
+            return completions;
+        }
     }
 }

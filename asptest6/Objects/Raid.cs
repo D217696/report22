@@ -8,7 +8,7 @@ namespace asptest6.Objects
 {
     public class Raid
     {
-        [JsonProperty("raid_id")]
+        [JsonProperty("id")]
         public int RaidId { get; set; }
         [JsonProperty("name")]
         public string Name { get; set; }

@@ -32,9 +32,9 @@ namespace asptest6.Api
 
             foreach (Profile profile in profiles)
             {
-                foreach(Character character in profile.Characters)
+                foreach (Character character in profile.Characters)
                 {
-                     tasks.Add(Task.Run(() => GetCharacterPage(profile.MembershipType, profile.MembershipId, character.CharacterId, profile.LastUpdated)));
+                    tasks.Add(Task.Run(() => GetCharacterPage(profile.MembershipType, profile.MembershipId, character.CharacterId, profile.LastUpdated)));
                 }
             }
 
@@ -52,7 +52,7 @@ namespace asptest6.Api
                     Pages = task.Result.Pages
                 });
 
-                foreach(ActivityPage activityPage in task.Result.ActivtityPages)
+                foreach (ActivityPage activityPage in task.Result.ActivtityPages)
                 {
                     getCharacterPagesResponse.Count += activityPage.Count;
                     getCharacterPagesResponse.Pages++;
@@ -62,7 +62,7 @@ namespace asptest6.Api
 
             if (succeeded)
             {
-                foreach(Profile profile in profiles)
+                foreach (Profile profile in profiles)
                 {
                     profilesModel.UpdateProfileLastUpdated(profile.MembershipId, DateTime.UtcNow.AddDays(-1));
                 }
@@ -121,7 +121,7 @@ namespace asptest6.Api
                         i++;
                         count += results.Length;
                     }
-                    
+
                     done = true;
                     continue;
                 }
@@ -170,9 +170,9 @@ namespace asptest6.Api
                     GetPostGameCarnageReport getPostGameCarnageReport = JsonConvert.DeserializeObject<GetPostGameCarnageReport>(pgcr.PgcrString);
 
                     DestinyPostGameCarnageReportEntry player = null;
-                        //(DestinyPostGameCarnageReportEntry)getPostGameCarnageReport.Response.Entries.Where(x => x.CharacterId.ToString() == characterPage.CharacterId);
+                    //(DestinyPostGameCarnageReportEntry)getPostGameCarnageReport.Response.Entries.Where(x => x.CharacterId.ToString() == characterPage.CharacterId);
 
-                    foreach(DestinyPostGameCarnageReportEntry entry in getPostGameCarnageReport.Response.Entries)
+                    foreach (DestinyPostGameCarnageReportEntry entry in getPostGameCarnageReport.Response.Entries)
                     {
                         if (entry.CharacterId.ToString() == characterPage.CharacterId)
                         {
@@ -237,7 +237,7 @@ namespace asptest6.Api
             int playerDeaths = 0;
             bool completed = false;
 
-            foreach(DestinyPostGameCarnageReportEntry entry in getPostGameCarnageReport.Response.Entries)
+            foreach (DestinyPostGameCarnageReportEntry entry in getPostGameCarnageReport.Response.Entries)
             {
                 totalDeaths += (int)entry.Values["deaths"].Basic.Value;
                 totalKills += (int)entry.Values["kills"].Basic.Value;
@@ -257,9 +257,9 @@ namespace asptest6.Api
             {
                 CharacterId = characterId,
                 PgcrId = activityId,
-                Kills = playerKills, 
+                Kills = playerKills,
                 Deaths = playerDeaths,
-                Completed = completed 
+                Completed = completed
             };
 
             getPCGRResponse.Pgcr = new()
@@ -282,8 +282,30 @@ namespace asptest6.Api
         public async Task<ProfileRaidCompletions> GetProfileRaids(Profile profile)
         {
             ProfileRaidCompletions profileRaidCompletions = new();
+            List<Raid> raids = raidsModel.GetRaids();
+            List<Completion> completions = characterPgcrModel.GetCompletions(profile.MembershipId); //pgcr
+            List<RaidCompletions> raidCompletions = new();
+            foreach (Raid raid in raids)
+            {
+                List<Completion> completionsForRaid = completions.Where(x => x.RaidId == raid.RaidId).ToList();
+                raidCompletions.Add(new RaidCompletions
+                {
+                    Raid = raid,
+                    ThreeMans = completionsForRaid.Where(x => x.PlayerCount == 3).Count(),
+                    TwoMans = completionsForRaid.Where(x => x.PlayerCount == 2).Count(),
+                    OneMans = completionsForRaid.Where(x => x.PlayerCount == 1).Count(),
+                    Completions = completionsForRaid
+                });
+            }
             profileRaidCompletions.Profile = profile;
-            profileRaidCompletions.RaidCompletions = raidsModel.GetRaidCompletions(profile.MembershipId);
+            profileRaidCompletions.RaidCompletions = raidCompletions.GroupBy(x => x.Raid.DisplayName).Select(d => new RaidCompletions
+            {
+                OneMans = d.Sum(x => x.OneMans),
+                TwoMans = d.Sum(x => x.TwoMans),
+                ThreeMans = d.Sum(x => x.ThreeMans),
+                Completions = d.SelectMany(x => x.Completions).ToList(),
+                Raid = d.FirstOrDefault().Raid
+            }).ToList();
             return profileRaidCompletions;
         }
     }

@@ -61,5 +61,29 @@ namespace asptest6.Models
             }
             return raidCompletions;
         }
+
+        public List<Raid> GetRaids()
+        {
+            List<Raid> raids = new();
+            string sql = "select json_object('id', raids.id, 'display_name', raids.display_name, 'name', raids.name, 'release_date', raids.release_date) from raids";
+            MySqlCommand cmd = new(sql, Database.Db);
+            try
+            {
+                Database.Db.Open();
+                MySqlDataReader reader = cmd.ExecuteReader();
+                if (reader.HasRows)
+                {
+                    while (reader.Read())
+                    {
+                        raids.Add(JsonConvert.DeserializeObject<Raid>(reader.GetValue(0).ToString()));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            return raids;
+        }
     }
 }
