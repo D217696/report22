@@ -3,7 +3,9 @@ using asptest6.Objects;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using NiobeLab.Core.Objects.Destiny.Endpoints;
+using NiobeLab.Core.Objects.Destiny.Entities.Characters;
 using NiobeLab.Core.Objects.Destiny.HistoricalStats;
+using NiobeLab.Core.Objects.Destiny.Responses;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,9 +20,100 @@ namespace asptest6.Api
         readonly ActivityPagesModel activityPagesModel = new();
         readonly ProfilesModel profilesModel = new();
         readonly CharacterPgcrModel characterPgcrModel = new();
+        readonly CharactersModel charactersModel = new();
         readonly PgcrsModel pgcrsModel = new();
-        readonly BungieApi bungieApi = new();
         readonly RaidsModel raidsModel = new();
+        readonly UsersModel usersModel = new();
+        readonly BungieApi bungieApi = new();
+
+
+        [HttpPost("GetProfileAndUpdateCharacters")]
+        public async Task<GetProfileResponse> GetProfilesAndUpdateCharacters(Credentials credentials)
+        {
+            GetProfileResponse getProfileResponse = new();
+
+            getProfileResponse.Profiles = profilesModel.GetProfiles(credentials.MembershipId);
+            if (getProfileResponse.Profiles.Count > 0)
+            {
+                getProfileResponse.User = usersModel.GetUser(getProfileResponse.Profiles[0].UserId);
+
+
+                foreach (Profile profile in getProfileResponse.Profiles)
+                {
+                    GetProfile getProfile = JsonConvert.DeserializeObject<GetProfile>(await bungieApi.MakeRequest($"/Destiny2/{profile.MembershipType}/Profile/{profile.MembershipId}/?components=100,200"));
+                    if (getProfile.ErrorCode != 1)
+                    {
+                        getProfileResponse.ErrorCode = getProfile.ErrorCode;
+                        getProfileResponse.ErrorMessage = getProfile.Message;
+                        return getProfileResponse;
+                    }
+
+                    //get characters that will be updated
+                    getProfileResponse.Profiles.Where(x => x.MembershipId == profile.MembershipId.ToString()).First().Characters = charactersModel.GetCharactersToUpdate(getProfile.Response.Characters.Data.Keys.ToList(), getProfile.Response.Profile.Data.UserInfo.MembershipId.ToString());
+                    if (getProfileResponse.Profiles.Where(x => x.MembershipId == profile.MembershipId.ToString()).First().Characters.Count > 0)
+                    {
+                        //update the characters
+                        charactersModel.UpdateCharacters(getProfile.Response.Characters.Data.Keys.ToList(), getProfile.Response.Profile.Data.UserInfo.MembershipId.ToString());
+                    }
+
+                    foreach (DestinyCharacterComponent destinyCharacterComponent in getProfile.Response.Characters.Data.Values)
+                    {
+                        //get other characters
+                        if (destinyCharacterComponent.DateLastPlayed >= getProfileResponse.Profiles.Where(x => x.MembershipId == profile.MembershipId).First().LastUpdated)
+                        {
+                            getProfileResponse.Profiles.Where(x => x.MembershipId == profile.MembershipId.ToString()).First().Characters.Add(new Character()
+                            {
+                                CharacterId = destinyCharacterComponent.CharacterId.ToString(),
+                                MembershipId = profile.MembershipId.ToString(),
+                                Deleted = false
+                            });
+                        }
+                    }
+                }
+            }
+            else
+            {
+                GetLinkedProfiles getLinkedProfiles = JsonConvert.DeserializeObject<GetLinkedProfiles>(await bungieApi.MakeRequest($"/Destiny2/{credentials.MembershipType}/Profile/{credentials.MembershipId}/LinkedProfiles/"));
+                if (getLinkedProfiles.ErrorCode != 1)
+                {
+                    getProfileResponse.ErrorCode = getLinkedProfiles.ErrorCode;
+                    getProfileResponse.ErrorMessage = getLinkedProfiles.Message;
+                    return getProfileResponse;
+                }
+
+                getProfileResponse.User = usersModel.InsertUser(getLinkedProfiles.Response.Profiles[0].DisplayName);
+                foreach (DestinyProfileUserInfoCard profile in getLinkedProfiles.Response.Profiles)
+                {
+                    getProfileResponse.Profiles.Add(profilesModel.InsertProfile(new Profile
+                    {
+                        MembershipId = profile.MembershipId.ToString(),
+                        MembershipType = profile.MembershipType,
+                        UserId = getProfileResponse.User.UserID,
+                        LastUpdated = new DateTime(2017, 9, 1),
+                        Username = profile.DisplayName
+                    }));
+
+                    GetHistoricalStatsForAccount getHistoricalStatsForAccount = JsonConvert.DeserializeObject<GetHistoricalStatsForAccount>(await bungieApi.MakeRequest($"/Destiny2/{profile.MembershipType}/Account/{profile.MembershipId}/Stats/"));
+                    if (getHistoricalStatsForAccount.ErrorCode != 1)
+                    {
+                        getProfileResponse.ErrorCode = getLinkedProfiles.ErrorCode;
+                        getProfileResponse.ErrorMessage = getLinkedProfiles.Message;
+                        return getProfileResponse;
+                    }
+
+                    foreach (DestinyHistoricalStatsPerCharacter character in getHistoricalStatsForAccount.Response.Characters)
+                    {
+                        getProfileResponse.Profiles.Where(x => x.MembershipId == profile.MembershipId.ToString()).First().Characters.Add(charactersModel.InsertCharacter(new Character() {
+                            CharacterId = character.CharacterId.ToString(),
+                            MembershipId = profile.MembershipId.ToString(),
+                            Deleted = character.Deleted
+                        }));
+                    }
+                }
+            }
+
+            return getProfileResponse;
+        }
 
         [HttpPost("CharacterPages")]
         public async Task<GetCharacterPagesResponse> GetCharacterPages(List<Profile> profiles)
@@ -170,7 +263,6 @@ namespace asptest6.Api
                     GetPostGameCarnageReport getPostGameCarnageReport = JsonConvert.DeserializeObject<GetPostGameCarnageReport>(pgcr.PgcrString);
 
                     DestinyPostGameCarnageReportEntry player = null;
-                    //(DestinyPostGameCarnageReportEntry)getPostGameCarnageReport.Response.Entries.Where(x => x.CharacterId.ToString() == characterPage.CharacterId);
 
                     foreach (DestinyPostGameCarnageReportEntry entry in getPostGameCarnageReport.Response.Entries)
                     {
@@ -184,7 +276,7 @@ namespace asptest6.Api
                     CharacterPgcr characterPgcr = new()
                     {
                         CharacterId = characterPage.CharacterId,
-                        PgcrId = activity.ActivityDetails.InstanceId,
+                        pgcrId = activity.ActivityDetails.InstanceId,
                         Kills = (int)player.Values["kills"].Basic.Value,
                         Deaths = (int)player.Values["deaths"].Basic.Value,
                         Completed = player.Values["completed"].Basic.Value == 1
@@ -204,10 +296,10 @@ namespace asptest6.Api
                 if (task.Result.ErrorCode != 1) continue;
                 GetPGCRResponse getPGCRResponse = task.Result;
 
-                CharacterPgcr characterPgcr = characterPgcrModel.GetCharacterPgcr(getPGCRResponse.CharacterPgcr.CharacterId, getPGCRResponse.CharacterPgcr.PgcrId);
+                CharacterPgcr characterPgcr = characterPgcrModel.GetCharacterPgcr(getPGCRResponse.CharacterPgcr.CharacterId, getPGCRResponse.CharacterPgcr.pgcrId);
                 if (characterPgcr == null) characterPgcrModel.InsertCharacterPgcr(getPGCRResponse.CharacterPgcr);
 
-                Pgcr pgcr = pgcrsModel.GetPgcr(getPGCRResponse.Pgcr.PcgrId);
+                Pgcr pgcr = pgcrsModel.GetPgcr(getPGCRResponse.Pgcr.pgcrId);
                 if (pgcr != null) continue;
                 pgcrsModel.InsertPgcr(getPGCRResponse.Pgcr);
             }
@@ -221,6 +313,7 @@ namespace asptest6.Api
         {
             GetPGCRResponse getPCGRResponse = new();
             GetPostGameCarnageReport getPostGameCarnageReport = JsonConvert.DeserializeObject<GetPostGameCarnageReport>(await bungieApi.MakeRequestWithoutBaseUrl($"https://stats.bungie.net/Platform/Destiny2/Stats/PostGameCarnageReport/{activityId}/"));
+                      
             if (getPostGameCarnageReport.ErrorCode != 1)
             {
                 return new GetPGCRResponse()
@@ -235,6 +328,7 @@ namespace asptest6.Api
             int playerCount = 0;
             int playerKills = 0;
             int playerDeaths = 0;
+            int timeInSeconds = 0;
             bool completed = false;
 
             foreach (DestinyPostGameCarnageReportEntry entry in getPostGameCarnageReport.Response.Entries)
@@ -248,6 +342,7 @@ namespace asptest6.Api
                     playerKills = (int)entry.Values["kills"].Basic.Value;
                     playerDeaths = (int)entry.Values["deaths"].Basic.Value;
                     completed = entry.Values["completed"].Basic.Value == 1;
+                    timeInSeconds = (int)entry.Values["activityDurationSeconds"].Basic.Value;
                 }
             }
 
@@ -256,7 +351,7 @@ namespace asptest6.Api
             getPCGRResponse.CharacterPgcr = new()
             {
                 CharacterId = characterId,
-                PgcrId = activityId,
+                pgcrId = activityId,
                 Kills = playerKills,
                 Deaths = playerDeaths,
                 Completed = completed
@@ -264,12 +359,13 @@ namespace asptest6.Api
 
             getPCGRResponse.Pgcr = new()
             {
-                PcgrId = activityId,
+                pgcrId = activityId,
                 PgcrString = JsonConvert.SerializeObject(getPostGameCarnageReport),
                 Flawless = totalDeaths == 0,
                 StartingPhaseIndex = getPostGameCarnageReport.Response.StartingPhaseIndex,
                 PlayerCount = playerCount,
-                RaidId = raidsModel.RaidHashes[getPostGameCarnageReport.Response.ActivityDetails.ReferenceId]
+                RaidId = raidsModel.RaidHashes[getPostGameCarnageReport.Response.ActivityDetails.ReferenceId],
+                TimeInSeconds = timeInSeconds
             };
 
             getPCGRResponse.ErrorCode = 1;
@@ -305,8 +401,25 @@ namespace asptest6.Api
                 ThreeMans = d.Sum(x => x.ThreeMans),
                 Completions = d.SelectMany(x => x.Completions).ToList(),
                 Raid = d.FirstOrDefault().Raid
-            }).ToList();
+            }).OrderByDescending(x => x.Raid.ReleaseDate).ToList();
             return profileRaidCompletions;
         }
+
+        [HttpPost("GetPgcr")]
+        public async Task<GetPostGameCarnageReport> GetPgcr(string id)
+        {
+            string pgcrString = pgcrsModel.GetPgcr(long.Parse(id)).PgcrString;
+            if (pgcrString != null)
+            {
+                return JsonConvert.DeserializeObject<GetPostGameCarnageReport>(pgcrString);
+            }
+
+            return JsonConvert.DeserializeObject<GetPostGameCarnageReport>(await bungieApi.MakeRequestWithoutBaseUrl($"https://stats.bungie.net/Platform/Destiny2/Stats/PostGameCarnageReport/{id}/"));
+        }
     }
+}
+
+public class Id
+{
+    public long Id2 { get; set; }
 }

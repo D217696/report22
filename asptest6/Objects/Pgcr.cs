@@ -9,7 +9,7 @@ namespace asptest6.Objects
     public class Pgcr
     {
         [JsonProperty("pgcr_id")]
-        public long PcgrId { get; set; }
+        public long pgcrId { get; set; }
         [JsonProperty("pgcr")]
         public string PgcrString { get; set; }
         [JsonProperty("flawless")]
@@ -20,5 +20,7 @@ namespace asptest6.Objects
         public int RaidId { get; set; }
         [JsonProperty("player_count")]
         public int PlayerCount { get; set; }
+        [JsonProperty("time")]
+        public int TimeInSeconds { get; set; }
     }
 }

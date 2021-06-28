@@ -1,56 +1,160 @@
 ﻿@page "/raids/{MembershipType}/{MembershipId}"
 @model asptest6.Pages.Forms.RaidsModel
-@{
-}
 
 <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
 <div id="app">
-    <div v-for="profile in profiles" v-on:click="activeProfile=profile.membershipId">
-        {{ profile.username }}
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-lg-2" v-if="done">
+                <div class="col-lg-12 row" v-for="raid in raids[activeProfile]" v-on:click="activeRaid = raid; activePgcr = null">
+                    <h5 class="col-lg-8">{{ raid.raid.displayName }}</h5>
+                    <img v-bind:src="raid.raid.img" alt="Alternate Text" class="col-lg-4" />
+                </div>
+            </div>
+            <div class="col-lg-10 row">
+                <div class="col-lg-12" v-for="profile in profiles.profiles" v-on:click="activeProfile=profile.membershipId" style="height: 100px">
+                    {{ profile.username }}
+                    {{ completedActivtyPages }} / {{ getActivityPagesResults.count }}
+                </div>
+                <div class="col-lg-6" v-if="activeRaid != null">
+                    <div class="row">
+                        <h1 class="col-lg-8">{{ activeRaid.raid.displayName }}</h1>
+                        <img class="col-lg-4" v-bind:src="activeRaid.raid.img" />
+                    </div>
+                    <div class="row">
+                        <h4 class="col-lg-2">Three mans</h4>
+                        <div class="col-lg-10 row">
+                            <h5 class="col-lg-3">Kills</h5>
+                            <h5 class="col-lg-3">Deaths</h5>
+                            <h5 class="col-lg-3">Flawless</h5>
+                            <h5 class="col-lg-3">Fresh</h5>
+                            <template v-for="completion in activeRaid.completions" v-if="completion.playerCount == 3">
+                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)">{{ completion.kills }}</h5>
+                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)">{{ completion.deaths }}</h5>
+                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.flawless == 1">True</h5>
+                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.flawless == 0">False</h5>
+                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.startingPhaseIndex == 0">True</h5>
+                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.startingPhaseIndex != 0">False</h5>
+                            </template>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <h4 class="col-lg-2">Two mans</h4>
+                        <div class="col-lg-10 row">
+                            <h5 class="col-lg-3">Kills</h5>
+                            <h5 class="col-lg-3">Deaths</h5>
+                            <h5 class="col-lg-3">Flawless</h5>
+                            <h5 class="col-lg-3">Fresh</h5>
+                            <template v-for="completion in activeRaid.completions" v-if="completion.playerCount == 2">
+                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)">{{ completion.kills }}</h5>
+                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)">{{ completion.deaths }}</h5>
+                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.flawless == 1">True</h5>
+                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.flawless == 0">False</h5>
+                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.startingPhaseIndex == 0">True</h5>
+                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.startingPhaseIndex != 0">False</h5>
+                            </template>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <h4 class="col-lg-2">Solos</h4>
+                        <div class="col-lg-10 row">
+                            <h5 class="col-lg-3">Kills</h5>
+                            <h5 class="col-lg-3">Deaths</h5>
+                            <h5 class="col-lg-3">Flawless</h5>
+                            <h5 class="col-lg-3">Fresh</h5>
+                            <template v-for="completion in activeRaid.completions" v-if="completion.playerCount == 1">
+                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)">{{ completion.kills }}</h5>
+                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)">{{ completion.deaths }}</h5>
+                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.flawless == 1">True</h5>
+                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.flawless == 0">False</h5>
+                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.startingPhaseIndex == 0">True</h5>
+                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.startingPhaseIndex != 0">False</h5>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6 row" v-if="activePgcr != null">
+                    <div class="col-lg-6" style="height: 100px"></div>
+                    <div class="col-lg-6 row" style="height: 100px">
+                        <h5 class="col-lg-3">Kills</h5>
+                        <h5 class="col-lg-3">Deaths</h5>
+                        <h5 class="col-lg-3">Assists</h5>
+                        <h5 class="col-lg-3">Completed</h5>
+                    </div>
+                    <div class="col-lg-12 row" v-for="entry in activePgcr.response.entries" style="height: 100px;">
+                        <img class="col-lg-2" v-bind:src="'/img/' + entry.player.characterClass +  '.svg'" />
+                        <a class="col-lg-4" v-bind:href="'/raids/' + entry.player.destinyUserInfo.membershipType + '/' + entry.player.destinyUserInfo.membershipId">{{ entry.player.destinyUserInfo.displayName }}</a>
+                        @*<h3 class="col-lg-4">{{ entry.player.destinyUserInfo.displayName }}</h3>*@
+                        <div class="col-lg-6 row">
+                            <h5 class="col-lg-3">{{ entry.values.kills.basic.displayValue }}</h5>
+                            <h5 class="col-lg-3">{{ entry.values.deaths.basic.displayValue }}</h5>
+                            <h5 class="col-lg-3">{{ entry.values.assists.basic.displayValue }}</h5>
+                            <h5 class="col-lg-3">{{ entry.values.completed.basic.displayValue }}</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-    {{ getActivityPagesResults.count }}
-<div v-for="raid in raids[activeProfile]">
-    <h1>{{ raid.raid.displayName }}</h1>
-    <h3>{{ raid.threeMans }} Threemans</h3>
-    <h3>{{ raid.twoMans }} Twomans</h3>
-    <h3>{{ raid.oneMans }} Solos</h3>
 </div>
-</div>
-<I></I>
 <script>
     var app = new Vue({
         el: '#app',
         mounted() {
-            fetch('@Url.RouteUrl("ProfileController")/CharacterPages', {
+            fetch('@Url.RouteUrl("ProfileController")/GetProfileAndUpdateCharacters', {
                 method: "POST",
-                body: JSON.stringify(
-                    this.profiles
-                ),
+                body: JSON.stringify({
+                    membershipType: this.membershipType,
+                    membershipId: this.membershipId
+                }),
                 headers: {
                     'Content-Type': 'application/json',
                     Accept: 'application/json',
                 }
             })
-            .then(response => response.json())
-            .then((data) => {
-                this.getActivityPagesResults = data;
-                console.log(data);
-                this.InitRequestPCGRsForCharacters();
-            });
+                .then(response => response.json())
+                .then((data) => {
+                    this.profiles = data;
+                    this.done = true;
+                    this.FetchRaids();
 
-            this.FetchRaids();
-            this.activeProfile = this.profiles[0].membershipId;
+
+                     fetch('@Url.RouteUrl("ProfileController")/CharacterPages', {
+                        method: "POST",
+                        body: JSON.stringify(
+                            this.profiles.profiles
+                        ),
+                         headers: {
+                             'Content-Type': 'application/json',
+                             Accept: 'application/json',
+                        }
+                     })
+                        .then(response => response.json())
+                        .then((data2) => {
+                            this.getActivityPagesResults = data2;
+                            console.log(data2);
+                            this.InitRequestPCGRsForCharacters();
+
+                            this.activeProfile = 0;
+                        });
+                });
+
         },
         data: {
-            user: @Json.Serialize(Model.User),
-            profiles: @Json.Serialize(Model.Profiles),
+            profiles: null,
             getActivityPagesResults: {
                 characters: [],
                 count: 0,
                 pages: 0
             },
             raids: {},
-            activeProfile: null
+            activeProfile: null,
+            membershipId: '@Model.MembershipId',
+            membershipType: '@Model.MembershipType',
+            done: false,
+            completedActivtyPages: 0,
+            activeRaid: null,
+            activePgcr: null
         },
         methods: {
             InitRequestPCGRsForCharacters() {
@@ -75,11 +179,15 @@
                 .then(response => response.json())
                 .then((data) => {
                     console.log(data);
+                    this.completedActivtyPages += data.count;
+                    if (this.completedActivtyPages == this.getActivityPagesResults.count) {
+                        this.FetchRaids();
+                    }
                 });
             },
             FetchRaids() {
                 let self = this;
-                this.profiles.forEach((profile) => {
+                this.profiles.profiles.forEach((profile) => {
                     fetch('@Url.RouteUrl("ProfileController")/ProfileRaids', {
                         method: "POST",
                         body: JSON.stringify(profile),
@@ -88,11 +196,25 @@
                             Accept: 'application/json',
                         }
                     })
-                        .then(response => response.json())
-                        .then((data) => {
-                            self.raids[data.profile.membershipId] = data.raidCompletions;
-                        });
+                    .then(response => response.json())
+                    .then((data) => {
+                        self.raids[data.profile.membershipId] = data.raidCompletions;
+                    });
                 });
+            },
+            SetActivePgcr(id) {
+                console.log(id);
+                fetch('@Url.RouteUrl("ProfileController")/GetPgcr?id=' +  id, {
+                        method: "POST",
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Accept: 'application/json',
+                        }
+                    })
+                    .then(response => response.json())
+                    .then((data) => {
+                        this.activePgcr = data;
+                    });
             }
         }
     });

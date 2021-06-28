@@ -65,7 +65,7 @@ namespace asptest6.Models
         public List<Raid> GetRaids()
         {
             List<Raid> raids = new();
-            string sql = "select json_object('id', raids.id, 'display_name', raids.display_name, 'name', raids.name, 'release_date', raids.release_date) from raids";
+            string sql = "select json_object('id', raids.id, 'display_name', raids.display_name, 'name', raids.name, 'release_date', raids.release_date, 'img', img) from raids";
             MySqlCommand cmd = new(sql, Database.Db);
             try
             {

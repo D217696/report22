@@ -41,7 +41,7 @@ namespace asptest6.Models
         public List<Character> GetCharacters(string membershipId)
         {
             List<Character> characters = new List<Character>();
-            string sql = $"SELECT json_object('character_id', character_id, 'membership_id', membership_id, 'deleted', deleted) from Characters WHERE membership_id = @membership_id;";
+            string sql = $"SELECT json_object('character_id', character_id, 'membership_id', membership_id, 'deleted', deleted) from Characters WHERE membership_id = @membership_id AND deleted = 0;";
             MySqlCommand cmd = new(sql, Database.Db);
             cmd.Parameters.AddWithValue("@membership_id", membershipId);
             try
@@ -83,6 +83,57 @@ namespace asptest6.Models
             }
             Database.Db.Close();
             return character;
+        }
+
+        public List<Character> GetCharactersToUpdate(List<long> characterIds, string membershipId)
+        {
+            List<Character> characters = new();
+            string sql = "SELECT json_object('character_id', character_id, 'membership_id', membership_id, 'deleted', deleted) FROM characters WHERE ";
+            foreach (long characterId in characterIds)
+            {
+                sql += $"character_id != {characterId} and ";
+            }
+            sql += $"membership_id = {membershipId} and deleted = 0";
+            MySqlCommand cmd = new(sql, Database.Db);
+            try
+            {
+                Database.Db.Open();
+                MySqlDataReader reader = cmd.ExecuteReader();
+                if (reader.HasRows)
+                {
+                    while (reader.Read())
+                    {
+                        characters.Add(JsonConvert.DeserializeObject<Character>(reader.GetValue(0).ToString()));
+                    }
+                }
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            Database.Db.Close();
+            return characters;
+        }
+
+        public void UpdateCharacters(List<long> characterIds, string membershipId)
+        {
+            string sql = "UPDATE characters SET deleted = 1 where ";
+            foreach(long characterId in characterIds)
+            {
+                sql += $"character_id != {characterId} and ";
+            }
+            sql += $"membership_id = {membershipId} and deleted = 0";
+            MySqlCommand cmd = new(sql, Database.Db);
+            try
+            {
+                Database.Db.Open();
+                MySqlDataReader reader = cmd.ExecuteReader();
+                while(reader.Read()) { }
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
         }
     }
 }

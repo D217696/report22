@@ -18,7 +18,7 @@ namespace NiobeLab.Core.Objects.User
         [JsonProperty("membershipType")]
         public Int32 MembershipType { get; set; }
         [JsonProperty("membershipId")]
-        public Int64 MembershipId { get; set; }
+        public string MembershipId { get; set; }
         [JsonProperty("displayName")]
         public string DisplayName { get; set; }
     }

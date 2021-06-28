@@ -13,7 +13,7 @@ namespace asptest6.Objects
         [JsonProperty("character_id")]
         public string CharacterId { get; set; }
         [JsonProperty("pgcr_id")]
-        public long PgcrId { get; set; }
+        public long pgcrId { get; set; }
         [JsonProperty("kills")]
         public int Kills { get; set; }
         [JsonProperty("deaths")]

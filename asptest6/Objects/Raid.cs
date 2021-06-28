@@ -16,5 +16,7 @@ namespace asptest6.Objects
         public string DisplayName { get; set; }
         [JsonProperty("release_date")]
         public DateTime ReleaseDate { get; set; }
+        [JsonProperty("img")]
+        public string Img { get; set; }
     }
 }

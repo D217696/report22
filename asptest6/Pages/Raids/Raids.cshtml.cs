@@ -1,4 +1,4 @@
-using System;
+ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -22,61 +22,9 @@ namespace asptest6.Pages.Forms
         [BindProperty(SupportsGet = true)]
         public string MembershipId { get; set; }
 
-        public new User User { get; set; }
-        public List<Profile> Profiles { get; set; } = new List<Profile>();
-
         public async void OnGet()
         {
-            ProfilesModel ProfileModel = new ProfilesModel();
-            BungieApi BungieApi = new BungieApi();
-            UsersModel UsersModel = new UsersModel();
-            CharactersModel CharactersModel = new CharactersModel();
-
-            Profiles = ProfileModel.GetProfiles(MembershipId);
-            if (Profiles.Count > 0)
-            {
-                User = UsersModel.GetUser(Profiles[0].UserId);
-                foreach(Profile profile in Profiles)
-                {
-                    profile.Characters = CharactersModel.GetCharacters(profile.MembershipId);
-                }
-            }
-            else
-            {
-                GetLinkedProfiles getLinkedProfiles = JsonConvert.DeserializeObject<GetLinkedProfiles>(await BungieApi.MakeRequest($"/Destiny2/{MembershipType}/Profile/{MembershipId}/LinkedProfiles/"));
-                if (getLinkedProfiles.ErrorCode != 1) return;
-
-                User = UsersModel.InsertUser(getLinkedProfiles.Response.Profiles[0].DisplayName);
-                foreach(DestinyProfileUserInfoCard profile in getLinkedProfiles.Response.Profiles)
-                {
-                    Profiles.Add(ProfileModel.InsertProfile(new Profile
-                    {
-                        MembershipId = profile.MembershipId.ToString(),
-                        MembershipType = profile.MembershipType,
-                        UserId = User.UserID,
-                        LastUpdated = new DateTime(2017, 9, 1),
-                        Username = profile.DisplayName
-                    }));
-
-                    GetHistoricalStatsForAccount getHistoricalStatsForAccount = JsonConvert.DeserializeObject<GetHistoricalStatsForAccount>( await BungieApi.MakeRequest($"/Destiny2/{profile.MembershipType}/Account/{profile.MembershipId}/Stats/"));
-                    if (getHistoricalStatsForAccount.ErrorCode != 1) return;
-
-                    foreach (DestinyHistoricalStatsPerCharacter character in getHistoricalStatsForAccount.Response.Characters)
-                    {
-                        CharactersModel.InsertCharacter(new Character
-                        {
-                            CharacterId = character.CharacterId.ToString(),
-                            MembershipId = profile.MembershipId.ToString(),
-                            Deleted = character.Deleted
-                        });
-                    }
-                }
-
-                foreach (Profile profile in Profiles)
-                {
-                    profile.Characters = CharactersModel.GetCharacters(profile.MembershipId);
-                }
-            }
+            
         }
     }
 }

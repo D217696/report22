@@ -1,4 +1,6 @@
 ﻿using Newtonsoft.Json;
+using NiobeLab.Core.Objects.Destiny.Endpoints;
+using NiobeLab.Core.Objects.Destiny.HistoricalStats;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,9 +11,7 @@ namespace asptest6.Objects
     public class Completion
     {
         [JsonProperty("pgcr_id")]
-        public long PcgrId { get; set; }
-        [JsonProperty("pgcr")]
-        public string PgcrString { get; set; }
+        public long pgcrId { get; set; }
         [JsonProperty("flawless")]
         public bool Flawless { get; set; }
         [JsonProperty("starting_phase_index")]
@@ -28,5 +28,7 @@ namespace asptest6.Objects
         public int Deaths { get; set; }
         [JsonProperty("completed")]
         public bool Completed { get; set; }
+        [JsonProperty("time")]
+        public int Time { get; set; }
     }
 }

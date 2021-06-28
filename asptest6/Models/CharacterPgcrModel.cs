@@ -44,7 +44,7 @@ namespace asptest6.Models
             string sql = $"INSERT INTO character_pgcrs (character_id, pgcr_id, kills, deaths, completed) VALUES (@character_id, @pgcr_id, @kills, @deaths, @completed);";
             MySqlCommand cmd = new(sql, Database.Db);
             cmd.Parameters.AddWithValue("@character_id", characterPgcr.CharacterId);
-            cmd.Parameters.AddWithValue("@pgcr_id", characterPgcr.PgcrId);
+            cmd.Parameters.AddWithValue("@pgcr_id", characterPgcr.pgcrId);
             cmd.Parameters.AddWithValue("@kills", characterPgcr.Kills);
             cmd.Parameters.AddWithValue("@deaths", characterPgcr.Deaths);
             cmd.Parameters.AddWithValue("@completed", characterPgcr.Completed);
@@ -65,7 +65,7 @@ namespace asptest6.Models
         public List<Completion> GetCompletions(string membershipId)
         {
             List<Completion> completions = new();
-            string sql = "SELECT JSON_OBJECT('pgcr_id', pgcrs.pgcr_id, 'flawless', pgcrs.flawless, 'starting_phase_index', pgcrs.starting_phase_index, 'raid_id', pgcrs.raid_id, 'player_count', pgcrs.player_count, 'character_id', character_pgcrs.character_id, 'kills', character_pgcrs.kills, 'deaths', character_pgcrs.deaths, 'completed', character_pgcrs.completed) FROM character_pgcrs inner join pgcrs on pgcrs.pgcr_id = character_pgcrs.pgcr_id inner join characters on characters.character_id = character_pgcrs.character_id where characters.membership_id = @membership_id and character_pgcrs.completed = 1 and pgcrs.player_count < 4";
+            string sql = "SELECT JSON_OBJECT('pgcr_id', pgcrs.pgcr_id, 'flawless', pgcrs.flawless, 'starting_phase_index', pgcrs.starting_phase_index, 'raid_id', pgcrs.raid_id, 'player_count', pgcrs.player_count, 'character_id', character_pgcrs.character_id, 'kills', character_pgcrs.kills, 'deaths', character_pgcrs.deaths, 'completed', character_pgcrs.completed, 'time', pgcrs.time) FROM character_pgcrs inner join pgcrs on pgcrs.pgcr_id = character_pgcrs.pgcr_id inner join characters on characters.character_id = character_pgcrs.character_id where characters.membership_id = @membership_id and character_pgcrs.completed = 1 and pgcrs.player_count < 4";
             MySqlCommand cmd = new(sql, Database.Db);
             cmd.Parameters.AddWithValue("@membership_id", membershipId);
             try
