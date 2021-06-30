@@ -3,93 +3,98 @@
 
 <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
 <div id="app">
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-lg-2" v-if="done">
-                <div class="col-lg-12 row" v-for="raid in raids[activeProfile]" v-on:click="activeRaid = raid; activePgcr = null">
-                    <h5 class="col-lg-8">{{ raid.raid.displayName }}</h5>
-                    <img v-bind:src="raid.raid.img" alt="Alternate Text" class="col-lg-4" />
+    <div class="container-fluid m-0 p-0">
+        <div class="row m-0 p-0" v-if="done">
+            <div class="col-lg-2 m-0 p-0">
+                <div class="row m-0 p-0 justify-content-between" v-for="raid in raids[activeProfile]" v-on:click="activeRaid = raid; activePgcr = null">
+                    {{ raid.raid.displayName }}
+                    <img v-bind:src="raid.raid.img" alt="Alternate Text" style="height: 20px;"/>
                 </div>
             </div>
-            <div class="col-lg-10 row">
-                <div class="col-lg-12" v-for="profile in profiles.profiles" v-on:click="activeProfile=profile.membershipId" style="height: 100px">
+            <div class="col-lg-10 row m-0 p-0">
+                <div class="col-lg-12 row m-0 p-0" v-for="profile in profiles.profiles" v-on:click="activeProfile=profile.membershipId">
                     {{ profile.username }}
                     {{ completedActivtyPages }} / {{ getActivityPagesResults.count }}
                 </div>
-                <div class="col-lg-6" v-if="activeRaid != null">
-                    <div class="row">
-                        <h1 class="col-lg-8">{{ activeRaid.raid.displayName }}</h1>
-                        <img class="col-lg-4" v-bind:src="activeRaid.raid.img" />
+                <div class="col-lg-6 row m-0 p-0 align-content-start"  v-if="activeRaid != null">
+                    <div class="col-lg-12 row">
+                        {{ activeRaid.raid.displayName }}
+                        <img v-bind:src="activeRaid.raid.img" style="height: 20px;"/>
                     </div>
-                    <div class="row">
-                        <h4 class="col-lg-2">Three mans</h4>
-                        <div class="col-lg-10 row">
-                            <h5 class="col-lg-3">Kills</h5>
-                            <h5 class="col-lg-3">Deaths</h5>
-                            <h5 class="col-lg-3">Flawless</h5>
-                            <h5 class="col-lg-3">Fresh</h5>
-                            <template v-for="completion in activeRaid.completions" v-if="completion.playerCount == 3">
-                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)">{{ completion.kills }}</h5>
-                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)">{{ completion.deaths }}</h5>
-                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.flawless == 1">True</h5>
-                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.flawless == 0">False</h5>
-                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.startingPhaseIndex == 0">True</h5>
-                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.startingPhaseIndex != 0">False</h5>
-                            </template>
+                    <div class="col-lg-12 row m-0 p-0 text-center" >
+                        <p class="col-lg-2">Three-mans</p>
+                        <div class="col-lg-10 row m-0 p-0">
+                            <p class="col-lg-3 m-0 p-0">Kills</p>
+                            <p class="col-lg-3 m-0 p-0">Deaths</p>
+                            <p class="col-lg-3 m-0 p-0">Fresh</p>
+                            <p class="col-lg-3 m-0 p-0">Flawless</p>
+                        </div>
+                        <div class="col-lg-10 row p-0 offset-md-2" v-for="completion in activeRaid.completions" v-if="completion.playerCount == 3">
+                            <p class="col-lg-3 m-0 p-0" v-on:click="SetActivePgcr(completion.pgcrId)">{{ completion.kills }}</p>
+                            <p class="col-lg-3 m-0 p-0" v-on:click="SetActivePgcr(completion.pgcrId)">{{ completion.deaths }}</p>
+                            <p class="col-lg-3 m-0 p-0" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.flawless == 1">True</p>
+                            <p class="col-lg-3 m-0 p-0" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.flawless == 0">False</p>
+                            <p class="col-lg-3 m-0 p-0" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.startingPhaseIndex == 0">True</p>
+                            <p class="col-lg-3 m-0 p-0" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.startingPhaseIndex != 0">False</p>
                         </div>
                     </div>
-                    <div class="row">
-                        <h4 class="col-lg-2">Two mans</h4>
-                        <div class="col-lg-10 row">
-                            <h5 class="col-lg-3">Kills</h5>
-                            <h5 class="col-lg-3">Deaths</h5>
-                            <h5 class="col-lg-3">Flawless</h5>
-                            <h5 class="col-lg-3">Fresh</h5>
-                            <template v-for="completion in activeRaid.completions" v-if="completion.playerCount == 2">
-                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)">{{ completion.kills }}</h5>
-                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)">{{ completion.deaths }}</h5>
-                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.flawless == 1">True</h5>
-                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.flawless == 0">False</h5>
-                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.startingPhaseIndex == 0">True</h5>
-                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.startingPhaseIndex != 0">False</h5>
-                            </template>
+                    <div class="col-lg-12 row m-0 p-0 text-center">
+                        <p class="col-lg-2">Two-mans</p>
+                        <div class="col-lg-10 row m-0 p-0">
+                            <p class="col-lg-3 m-0 p-0">Kills</p>
+                            <p class="col-lg-3 m-0 p-0">Deaths</p>
+                            <p class="col-lg-3 m-0 p-0">Fresh</p>
+                            <p class="col-lg-3 m-0 p-0">Flawless</p>
+                        </div>
+                        <div class="col-lg-10 row p-0 offset-md-2" v-for="completion in activeRaid.completions" v-if="completion.playerCount == 2">
+                            <p class="col-lg-3 m-0 p-0" v-on:click="SetActivePgcr(completion.pgcrId)">{{ completion.kills }}</p>
+                            <p class="col-lg-3 m-0 p-0" v-on:click="SetActivePgcr(completion.pgcrId)">{{ completion.deaths }}</p>
+                            <p class="col-lg-3 m-0 p-0" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.flawless == 1">True</p>
+                            <p class="col-lg-3 m-0 p-0" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.flawless == 0">False</p>
+                            <p class="col-lg-3 m-0 p-0" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.startingPhaseIndex == 0">True</p>
+                            <p class="col-lg-3 m-0 p-0" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.startingPhaseIndex != 0">False</p>
                         </div>
                     </div>
-                    <div class="row">
-                        <h4 class="col-lg-2">Solos</h4>
-                        <div class="col-lg-10 row">
-                            <h5 class="col-lg-3">Kills</h5>
-                            <h5 class="col-lg-3">Deaths</h5>
-                            <h5 class="col-lg-3">Flawless</h5>
-                            <h5 class="col-lg-3">Fresh</h5>
-                            <template v-for="completion in activeRaid.completions" v-if="completion.playerCount == 1">
-                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)">{{ completion.kills }}</h5>
-                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)">{{ completion.deaths }}</h5>
-                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.flawless == 1">True</h5>
-                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.flawless == 0">False</h5>
-                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.startingPhaseIndex == 0">True</h5>
-                                <h5 class="col-lg-3" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.startingPhaseIndex != 0">False</h5>
-                            </template>
+                    <div class="col-lg-12 row m-0 p-0 text-center">
+                        <p class="col-lg-2">Solos</p>
+                        <div class="col-lg-10 row m-0 p-0">
+                            <p class="col-lg-3 m-0 p-0">Kills</p>
+                            <p class="col-lg-3 m-0 p-0">Deaths</p>
+                            <p class="col-lg-3 m-0 p-0">Fresh</p>
+                            <p class="col-lg-3 m-0 p-0">Flawless</p>
+                        </div>
+                        <div class="col-lg-10 row p-0 offset-md-2" v-for="completion in activeRaid.completions" v-if="completion.playerCount == 1">
+                            <p class="col-lg-3 m-0 p-0" v-on:click="SetActivePgcr(completion.pgcrId)">{{ completion.kills }}</p>
+                            <p class="col-lg-3 m-0 p-0" v-on:click="SetActivePgcr(completion.pgcrId)">{{ completion.deaths }}</p>
+                            <p class="col-lg-3 m-0 p-0" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.flawless == 1">True</p>
+                            <p class="col-lg-3 m-0 p-0" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.flawless == 0">False</p>
+                            <p class="col-lg-3 m-0 p-0" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.startingPhaseIndex == 0">True</p>
+                            <p class="col-lg-3 m-0 p-0" v-on:click="SetActivePgcr(completion.pgcrId)" v-if="completion.startingPhaseIndex != 0">False</p>
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-6 row" v-if="activePgcr != null">
-                    <div class="col-lg-6" style="height: 100px"></div>
-                    <div class="col-lg-6 row" style="height: 100px">
-                        <h5 class="col-lg-3">Kills</h5>
-                        <h5 class="col-lg-3">Deaths</h5>
-                        <h5 class="col-lg-3">Assists</h5>
-                        <h5 class="col-lg-3">Completed</h5>
+                <div class="col-lg-6 row m-0 p-0 text-center align-content-start" v-if="activePgcr != null">
+                    <div class="col-lg-12 row m-0 p-0">
+                        <div class="col-lg-4 m-0 p-0">
+                            Last wish 46:30
+                        </div>
+                        <div class="col-lg-8 row m-0 p-0">
+                            <p class="col-lg-3">Kills</p>
+                            <p class="col-lg-3">Deaths</p>
+                            <p class="col-lg-3">Assists</p>
+                            <p class="col-lg-3">Completed</p>
+                        </div>
                     </div>
-                    <div class="col-lg-12 row" v-for="entry in activePgcr.response.entries" style="height: 100px;">
-                        <img class="col-lg-2" v-bind:src="'/img/' + entry.player.characterClass +  '.svg'" />
-                        <a class="col-lg-4" v-bind:href="'/raids/' + entry.player.destinyUserInfo.membershipType + '/' + entry.player.destinyUserInfo.membershipId">{{ entry.player.destinyUserInfo.displayName }}</a>
-                        @*<h3 class="col-lg-4">{{ entry.player.destinyUserInfo.displayName }}</h3>*@
-                        <div class="col-lg-6 row">
-                            <h5 class="col-lg-3">{{ entry.values.kills.basic.displayValue }}</h5>
-                            <h5 class="col-lg-3">{{ entry.values.deaths.basic.displayValue }}</h5>
-                            <h5 class="col-lg-3">{{ entry.values.assists.basic.displayValue }}</h5>
-                            <h5 class="col-lg-3">{{ entry.values.completed.basic.displayValue }}</h5>
+                    <div class="col-lg-12 row m-0 p-0" v-for="entry in activePgcr.response.entries">
+                        <div class="col-lg-12 row m-0 p-0" >
+                            <img class="col-lg-1" v-bind:src="'/img/' + entry.player.characterClass +  '.svg'" />
+                            <a class="col-lg-3" v-bind:href="'/raids/' + entry.player.destinyUserInfo.membershipType + '/' + entry.player.destinyUserInfo.membershipId">{{ entry.player.destinyUserInfo.displayName }}</a>
+                            <div class="col-lg-8 row m-0 p-0">
+                                <p class="col-lg-3">{{ entry.values.kills.basic.displayValue }}</p>
+                                <p class="col-lg-3">{{ entry.values.deaths.basic.displayValue }}</p>
+                                <p class="col-lg-3">{{ entry.values.assists.basic.displayValue }}</p>
+                                <p class="col-lg-3">{{ entry.values.completed.basic.displayValue }}</p>
+                            </div>
                         </div>
                     </div>
                 </div>
